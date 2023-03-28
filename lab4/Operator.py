@@ -8,6 +8,8 @@
 #-----------------------------------------------------
 
 from fastapi import FastAPI
+from typing import List
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -17,7 +19,18 @@ app = FastAPI()
 #------------------------------------------
 
 #Todo: Create objects for Map, Rover, and Mines
+class Map(BaseModel):
+    data: List[List][int]
 
+class Rover(BaseModel):
+    id: int
+    data: str
+    status: str
+    xpos: int
+    ypos: int
+
+#db to store all rovers
+rovers_db = {}
 
 #--------------------------------------------------
 #
@@ -28,14 +41,18 @@ app = FastAPI()
 #GET: Retrieve 2D array of the field
 @app.get('/map')
 def getMap():
-    #do something
-    return {'Output': 'This is a test for the Get Map.'}
+    with open("map.txt", "r") as f:
+        map_data = f.read()
+    return {"Map": map_data}
 
 #PUT: Update height and width of field
 @app.put('/map')
-def updateField():
-    #do something
-    return {'Output': 'This is a test for the Put Map.'}
+def updateField(map_data: Map):
+    with open("map.txt", "w") as f:
+        for row in map_data.data:
+            f.write(" ".join(str(cell) for cell in row))
+            f.write("\n")
+    return {"Message": "The map has been successfully updated."}
 
 #--------------------------------------------------
 #
@@ -85,15 +102,15 @@ def updateMine():
 #GET: Retrieve list of ALL rovers
 @app.get('/rovers')
 def retrieveListRovers():
-    #do something
-    return {'Output': 'This is a test for the Get Rovers.'}
+    return list(rovers_db.values())
 
 #GET: Retrieve rover specified by ID number
 #Throw exception if Rover not found (404 error)
 @app.get('/rovers/:id')
-def retrieveRover():
-    #do something
-    return {'Output': 'This is a test for the Get Rover with ID.'}
+def retrieveRover(rover_id: int):
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    return rovers_db[rover_id]
 
 #POST: Create new rover
 @app.post('/rovers')
@@ -103,21 +120,35 @@ def addRover():
 
 #Delete: Deletes rover specified by ID
 #Throws 404 error if Rover not found
-@app.delete('/rovers/:id')
-def deleteRover():
-    #do something
-    return {'Output': 'This is a test for the Delete Rover.'}
+@app.delete('/rovers/{rover_id}')
+def deleteRover(rover_id: int):
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    del rovers_db[rover_id]
+    return {"message": f"Rpver {rover_id} has been successfully deleted"}
 
 #PUT: Send list of commands to Rover
 #404 error if Rover not found
 #Error thrown if Rover Status is "Not Started", or "Finished"
-@app.put('/rovers/:id')
-def updateRover():
-    #do something
-    return {'Output': 'This is a test for the Put Mine.'}
+@app.put('/rovers/{rover_id}')
+def updateRover(rover_id: int):
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    if rovers_db[rover_id].status == 'ns':
+        raise HTTPException(status_code=405, detail="Rover has not started")
+    elif rovers_db[rover_id].status == 'fin':
+        raise HTTPException(status_code=405, detail="Rover is finished")
+    # Update the rover object in the database
+    response = requests.get('https://coe892.reev.dev/lab1/rover/' + str(number))
+    data = response.text
+    parse_json = json.loads(data)
+    moves = parse_json['data']['moves']
+    rovers_db[rover_id].data = moves
+    return {"message": f"Rover {rover_id} updated successfully."}
+
 
 #POST: Dispatch Rover with specified ID
-@app.post('/rovers/:id/dispatch')
+@app.post('/rovers/{rover_id}/dispatch')
 def dispatchRover():
     #do something
     return {'Output': 'This is a test for the Dispatch Rovers.'}
