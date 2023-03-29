@@ -25,12 +25,15 @@ app = FastAPI()
 class Map(BaseModel):
     data: List[List[int]]
 
+map_grid = []
+
 class Rover(BaseModel):
     id: int
     data: str
     status: str
     xpos: int
     ypos: int
+    direction: str
 
 #db to store all rovers
 rovers_db = {}
@@ -41,6 +44,7 @@ class Mine(BaseModel):
     isDefused: bool = False
     serialNum: int
     id: int
+    pin: int
 
 mines_db = {}
 
@@ -51,11 +55,20 @@ mines_db = {}
 #--------------------------------------------------
 
 #GET: Retrieve 2D array of the field
+#@app.get('/map')
+#def getMap():
+#    with open("map.txt", "r") as f:
+#        map_data = f.read()
+#    return {"Map": map_data}
+
 @app.get('/map')
 def getMap():
-    with open("map.txt", "r") as f:
-        map_data = f.read()
-    return {"Map": map_data}
+    with open("map.txt", 'r') as f:
+        map_lines = f.readlines()
+    map_lines = [line.strip() for line in map_lines]
+    map_grid = [list(line) for line in map_lines]
+    return map_grid
+
 
 #PUT: Update height and width of field
 @app.put('/map')
@@ -100,6 +113,7 @@ def addMine(mine_data: Mine):
     mine_id = len(mines_db) + 1
     mine = Mine(id=mine_id, **mine_data.dict())
     mine.serialNum = randint(100, 999)
+    mine.pin = randint(1000, 9999)
     mines_db[mine_id] = mine
     return mine
 
@@ -157,9 +171,9 @@ def deleteRover(rover_id: int):
 def updateRover(rover_id: int):
     if rover_id not in rovers_db:
         raise HTTPException(status_code=404, detail="Rover not found")
-    elif rovers_db[rover_id].status == 'ns':
+    elif rovers_db[rover_id].status == 'NotStarted':
         raise HTTPException(status_code=405, detail="Rover has not started")
-    elif rovers_db[rover_id].status == 'fin':
+    elif rovers_db[rover_id].status == 'Finished':
         raise HTTPException(status_code=405, detail="Rover is finished")
     # Update the rover object in the database
     response = requests.get('https://coe892.reev.dev/lab1/rover/' + str(rover_id))
@@ -175,6 +189,9 @@ def updateRover(rover_id: int):
 def dispatchRover(rover_id: int):
     if rover_id not in rovers_db:
         raise HTTPException(status_code=404, detail="Rover not found")
+    elif rovers_db[rover_id].status == "Finished":
+        raise HTTPException(status_code=405, detail="Rover is finished")
+    rovers_db[rover_id].status = "Ready"
     roverMovement(rover_id)
     return {"rover_id": rover_id}
 
@@ -182,3 +199,79 @@ def roverMovement(rover_id: int):
     #todo: Create function that handles movement of rover.
     #This function will be called in dispatchRover()
     commands = rovers_db[rover_id].data
+    for i in range(len(commands)):
+        if(commands[i] == 'M'):
+            moveForward(rover_id)
+        elif(commands[i] == 'L'):
+            rovers_db[rover_id].direction = turnLeft(rovers_db[rover_id].direction)
+        elif(commands[i] == 'R'):
+            rovers_db[rover_id].direction = turnRight(rovers_db[rover_id].direction)
+        elif(commands[i] == 'D'):
+            x = rovers_db[rover_id].xpos
+            y = rovers_db[rover_id].ypos
+            if(getMineID(x,y) != -1):
+                print("Mine has been defused! CTs Win!")
+                print("PIN of Defused Mine is ", getMineID(x,y))
+            else:
+                print("No Mine here!")
+
+
+def moveForward(rover_id: int):
+    try:
+        if(rovers_db[rover_id].direction == 'North'):
+            xnew = rovers_db[rover_id].xpos
+            ynew = rovers_db[rover_id].ypos + 1
+            if(map_grid[xnew][ynew] != '#'):
+                rovers_db[rover_id].ypos = ynew
+
+        elif(rovers_db[rover_id].direction == 'South'):
+            xnew = rovers_db[rover_id].xpos
+            ynew = rovers_db[rover_id].ypos - 1
+            if(map_grid[xnew][ynew] != '#'):
+                rovers_db[rover_id].ypos = ynew
+
+        elif(rovers_db[rover_id].direction == "East"):
+            xnew = rovers_db[rover_id].xpos + 1
+            ynew = rovers_db[rover_id].ypos
+            if(map_grid[xnew][ynew] != '#'):
+                rovers_db[rover_id].xpos = xnew
+
+        elif(rovers_db[rover_id].direction == "West"):
+            xnew = rovers_db[rover_id].xpos - 1
+            ynew = rovers_db[rover_id].ypos
+            if(map_grid[xnew][ynew] != '#'):
+                rovers_db[rover_id].xpos = xnew
+    except IndexError:
+        print("Index Out of Range")
+
+
+def turnLeft(rover_id: int):
+    if (rovers_db[rover_id].direction == 'North'):
+        rovers_db[rover_id].direction = 'West'
+    elif (rovers_db[rover_id].direction == 'East'):
+        rovers_db[rover_id].direction = 'North'
+    elif (rovers_db[rover_id].direction == 'South'):
+        rovers_db[rover_id].direction = 'East'
+    elif (rovers_db[rover_id].direction == 'West'):
+        rovers_db[rover_id].direction = 'South'
+    return rovers_db[rover_id].direction
+
+
+def turnRight(rover_id: int):
+    if (rovers_db[rover_id].direction == 'North'):
+        rovers_db[rover_id].direction = 'East'
+    elif (rovers_db[rover_id].direction == 'East'):
+        rovers_db[rover_id].direction = 'South'
+    elif (rovers_db[rover_id].direction == 'South'):
+        rovers_db[rover_id].direction = 'West'
+    elif (rovers_db[rover_id].direction == 'West'):
+        rovers_db[rover_id].direction = 'North'
+    return rovers_db[rover_id].direction
+
+def getMineID(x: int, y: int):
+    for mine in mines_db:
+        if mine.xpos == x and mine.ypos == y:
+            print(f"Mine {mine.id} Identified")
+            return mine.pin
+        else:
+            return -1
