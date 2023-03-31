@@ -9,6 +9,7 @@
 
 import requests
 import json
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from typing import List, Tuple
 from pydantic import BaseModel
@@ -109,13 +110,13 @@ def deleteMine(mine_id: int):
 
 #POST: Create a new mine
 @app.post('/mines')
-def addMine(mine_data: Mine):
-    mine_id = len(mines_db) + 1
-    mine = Mine(id=mine_id, **mine_data.dict())
-    mine.serialNum = randint(100, 999)
-    mine.pin = randint(1000, 9999)
-    mines_db[mine_id] = mine
-    return mine
+def addMine(mine: Mine):
+    # Check if rover with same ID already exists
+    if mine.id in mines_db:
+        return {"error": "Rover with the same ID already exists"}
+    # Add rover to database
+    mines_db[mine.id] = mine
+    return {"message": f"Rover {mine.id} created successfully"}
 
 #PUT: Update a mine
 #404 error if Mine not found
@@ -149,11 +150,13 @@ def retrieveRover(rover_id: int):
 
 #POST: Create new rover
 @app.post('/rovers')
-def addRover(rover_data: Rover):
-    rover_id = len(rovers_db) + 1
-    rover = Rover(id=rover_id, **rover_data.dict())
-    rovers_db[rover_id] = rover
-    return rover
+def addRover(rover: Rover):
+    # Check if rover with same ID already exists
+    if rover.id in rovers_db:
+        return {"error": "Rover with the same ID already exists"}
+    # Add rover to database
+    rovers_db[rover.id] = rover
+    return {"message": f"Rover {rover.id} created successfully"}
 
 #Delete: Deletes rover specified by ID
 #Throws 404 error if Rover not found
@@ -171,15 +174,12 @@ def deleteRover(rover_id: int):
 def updateRover(rover_id: int):
     if rover_id not in rovers_db:
         raise HTTPException(status_code=404, detail="Rover not found")
-    elif rovers_db[rover_id].status == 'NotStarted':
-        raise HTTPException(status_code=405, detail="Rover has not started")
-    elif rovers_db[rover_id].status == 'Finished':
-        raise HTTPException(status_code=405, detail="Rover is finished")
+    elif rovers_db[rover_id].status == 'Active':
+        raise HTTPException(status_code=405, detail="Rover is active")
     # Update the rover object in the database
     response = requests.get('https://coe892.reev.dev/lab1/rover/' + str(rover_id))
-    data = response.text
-    parse_json = json.loads(data)
-    moves = parse_json['data']['moves']
+    data = json.loads(response.text)
+    moves = str([data["data"]["moves"]])
     rovers_db[rover_id].data = moves
     return {"message": f"Rover {rover_id} updated successfully."}
 
@@ -203,9 +203,10 @@ def roverMovement(rover_id: int):
         if(commands[i] == 'M'):
             moveForward(rover_id)
         elif(commands[i] == 'L'):
-            rovers_db[rover_id].direction = turnLeft(rovers_db[rover_id].direction)
+            #rovers_db[rover_id].direction = turnLeft(rovers_db[rover_id].direction)
+            rovers_db[rover_id].direction = turn_left(rovers_db[rover_id])
         elif(commands[i] == 'R'):
-            rovers_db[rover_id].direction = turnRight(rovers_db[rover_id].direction)
+            rovers_db[rover_id].direction = turn_right(rovers_db[rover_id].direction)
         elif(commands[i] == 'D'):
             x = rovers_db[rover_id].xpos
             y = rovers_db[rover_id].ypos
@@ -230,19 +231,41 @@ def moveForward(rover_id: int):
             if(map_grid[xnew][ynew] != '#'):
                 rovers_db[rover_id].ypos = ynew
 
-        elif(rovers_db[rover_id].direction == "East"):
+        elif(rovers_db[rover_id].direction == 'East'):
             xnew = rovers_db[rover_id].xpos + 1
             ynew = rovers_db[rover_id].ypos
             if(map_grid[xnew][ynew] != '#'):
                 rovers_db[rover_id].xpos = xnew
 
-        elif(rovers_db[rover_id].direction == "West"):
+        elif(rovers_db[rover_id].direction == 'West'):
             xnew = rovers_db[rover_id].xpos - 1
             ynew = rovers_db[rover_id].ypos
             if(map_grid[xnew][ynew] != '#'):
                 rovers_db[rover_id].xpos = xnew
     except IndexError:
         print("Index Out of Range")
+
+def turn_right(facing):
+    directions = {
+        'North': 'East',
+        'East': 'South',
+        'South': 'West',
+        'West': 'North'
+    }
+    if facing in directions:
+        return directions[facing]
+    else:
+        return 'Invalid direction'
+
+def turn_left(rover):
+    """Updates the rover's direction to the left of its current direction"""
+    directions = ['North', 'East', 'South', 'West']
+    current_direction = rover.direction
+    current_index = directions.index(current_direction)
+    new_index = (current_index - 1) % 4  # wraps around to end of list if index becomes negative
+    new_direction = directions[new_index]
+    rover.direction = new_direction
+    return rover
 
 
 def turnLeft(rover_id: int):
