@@ -9,7 +9,7 @@
 
 import requests
 import json
-import uvicorn
+import hashlib
 import sys
 from fastapi import FastAPI, HTTPException
 from typing import List, Tuple
@@ -27,7 +27,7 @@ app = FastAPI()
 class Map(BaseModel):
     data: List[List[int]]
 
-map_grid = []
+
 
 class Rover(BaseModel):
     id: int
@@ -35,7 +35,6 @@ class Rover(BaseModel):
     status: str
     xpos: int
     ypos: int
-    direction: str
 
 #db to store all rovers
 rovers_db = {}
@@ -56,20 +55,22 @@ mines_db = {}
 #
 #--------------------------------------------------
 
-#GET: Retrieve 2D array of the field
-#@app.get('/map')
-#def getMap():
-#    with open("map.txt", "r") as f:
-#        map_data = f.read()
-#    return {"Map": map_data}
-
 @app.get('/map')
 def getMap():
     with open("map.txt", 'r') as f:
-        map_lines = f.readlines()
-    map_lines = [line.strip() for line in map_lines]
-    map_grid = [list(line) for line in map_lines]
-    return map_grid
+        q = open("map.txt", "r")
+        map = []
+        arr = []
+        for line in q:
+            stripedL = line.rstrip()
+            row = stripedL.split(' ')
+            map.append(row)
+        w = 0
+        for i in map:
+            if w >= 1:
+                arr.append(i)
+            w = w + 1
+    return map
 
 
 #PUT: Update height and width of field
@@ -197,81 +198,44 @@ def dispatchRover(rover_id: int):
     roverMovement(rover_id)
     return {"rover_id": rover_id}
 
-def roverMovement(rover_id: int):
-    #todo: Create function that handles movement of rover.
-    #This function will be called in dispatchRover()
-    commands = rovers_db[rover_id].data
-    for i in range(len(commands)):
-        if(commands[i] == 'M'):
-            move_rover(rovers_db[rover_id])
-        elif(commands[i] == 'L'):
-            #rovers_db[rover_id].direction = turnLeft(rovers_db[rover_id].direction)
-            rovers_db[rover_id].direction = turn_left(rovers_db[rover_id])
-        elif(commands[i] == 'R'):
-            rovers_db[rover_id].direction = turn_right(rovers_db[rover_id])
-        elif(commands[i] == 'D'):
-            x = rovers_db[rover_id].xpos
-            y = rovers_db[rover_id].ypos
-            if(getMineID(x,y) != -1):
-                print("Mine has been defused! CTs Win!")
-                print("PIN of Defused Mine is ", getMineID(x,y))
-            else:
-                print("No Mine here!")
 
+def roverMovement(rover_id):
+    arr = getMap()
+    arr = arr[1: -1:]
+    arr2 = ""
+    for c in arr:
+        if c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9" or c == "0" or c == ",":
+            arr2 = (arr2 + c)
+    arr2 = list(arr2.split(","))
+    arr = [arr2[x:x + 6] for x in range(0, len(arr2), 6)]
+    arr2 = [["", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["", "", "", "", "", ""]]
+    arr2[0][0] = "*"
+    val = rovers_db[rover_id].data
+    t = 0
+    for q in val:
+        dug = val[t+1]
+        if t < len(val)-2:
+            t = t+1
+        dugged = 0
+        if dug == "D":
+            dugged = 1
+        if q == "M":
+            #do stuff
 
-def move_rover(rover):
-    x = rover.xpos
-    y = rover.ypos
-    # check if new position is within grid boundaries
+def getMineSerialNum():
+    #do stuff
 
-    if rover.direction == "North":
-        if y == 0 or map_grid[y-1][x] == "#":  # check if next position is a wall
-            print("Cannot move, wall in front of rover!")
-        else:
-            rover.ypos = rover.ypos-1
-    elif rover.direction == "East":
-        if x == len(map_grid[0])-1 or map_grid[y][x+1] == "#":  # check if next position is a wall
-            print("Cannot move, wall in front of rover!")
-        else:
-            rover.xpos = rover.xpos+1
-    elif rover.direction == "South":
-        if y == len(map_grid)-1 or map_grid[y+1][x] == "#":  # check if next position is a wall
-            print("Cannot move, wall in front of rover!")
-        else:
-            rover.ypos = rover.ypos+1
-    elif rover.direction == "West":
-        if x == 0 or map_grid[y][x-1] == "#":  # check if next position is a wall
-            print("Cannot move, wall in front of rover!")
-        else:
-            rover.xpos = rover.xpos-1
-
-
-
-def turn_right(rover):
-    """Updates the rover's direction to the left of its current direction"""
-    directions = ['North', 'East', 'South', 'West']
-    current_direction = rover.direction
-    current_index = directions.index(current_direction)
-    new_index = (current_index + 1) % 4  # wraps around to end of list if index becomes negative
-    new_direction = directions[new_index]
-    rover.direction = new_direction
-    return rover
-
-def turn_left(rover):
-    """Updates the rover's direction to the left of its current direction"""
-    directions = ['North', 'East', 'South', 'West']
-    current_direction = rover.direction
-    current_index = directions.index(current_direction)
-    new_index = (current_index - 1) % 4  # wraps around to end of list if index becomes negative
-    new_direction = directions[new_index]
-    rover.direction = new_direction
-    return rover
-
-
-def getMineID(x: int, y: int):
+def getMinePIN(x: int, y: int):
     for mine in mines_db:
-        if mine.xpos == x and mine.ypos == y:
-            print(f"Mine {mine.id} Identified")
-            return mine.pin
+        if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
+            serialNum = mines_db[mine].serialNum
+            pin = randint(0,20)
+            tempMineKey = str(pin) + str(serialNum)
+            encode = tempMineKey.encode()
+            hash = hashlib.sha256(encode).hexdigest()
+            return hash
         else:
             return -1
