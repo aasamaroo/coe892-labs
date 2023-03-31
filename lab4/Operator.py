@@ -10,6 +10,7 @@
 import requests
 import json
 import uvicorn
+import sys
 from fastapi import FastAPI, HTTPException
 from typing import List, Tuple
 from pydantic import BaseModel
@@ -187,6 +188,7 @@ def updateRover(rover_id: int):
 #POST: Dispatch Rover with specified ID
 @app.post('/rovers/{rover_id}/dispatch')
 def dispatchRover(rover_id: int):
+    sys.setrecursionlimit(10**6)
     if rover_id not in rovers_db:
         raise HTTPException(status_code=404, detail="Rover not found")
     elif rovers_db[rover_id].status == "Finished":
@@ -201,12 +203,12 @@ def roverMovement(rover_id: int):
     commands = rovers_db[rover_id].data
     for i in range(len(commands)):
         if(commands[i] == 'M'):
-            moveForward(rover_id)
+            move_rover(rovers_db[rover_id])
         elif(commands[i] == 'L'):
             #rovers_db[rover_id].direction = turnLeft(rovers_db[rover_id].direction)
             rovers_db[rover_id].direction = turn_left(rovers_db[rover_id])
         elif(commands[i] == 'R'):
-            rovers_db[rover_id].direction = turn_right(rovers_db[rover_id].direction)
+            rovers_db[rover_id].direction = turn_right(rovers_db[rover_id])
         elif(commands[i] == 'D'):
             x = rovers_db[rover_id].xpos
             y = rovers_db[rover_id].ypos
@@ -217,45 +219,43 @@ def roverMovement(rover_id: int):
                 print("No Mine here!")
 
 
-def moveForward(rover_id: int):
-    try:
-        if(rovers_db[rover_id].direction == 'North'):
-            xnew = rovers_db[rover_id].xpos
-            ynew = rovers_db[rover_id].ypos + 1
-            if(map_grid[xnew][ynew] != '#'):
-                rovers_db[rover_id].ypos = ynew
+def move_rover(rover):
+    x = rover.xpos
+    y = rover.ypos
+    # check if new position is within grid boundaries
 
-        elif(rovers_db[rover_id].direction == 'South'):
-            xnew = rovers_db[rover_id].xpos
-            ynew = rovers_db[rover_id].ypos - 1
-            if(map_grid[xnew][ynew] != '#'):
-                rovers_db[rover_id].ypos = ynew
+    if rover.direction == "North":
+        if y == 0 or map_grid[y-1][x] == "#":  # check if next position is a wall
+            print("Cannot move, wall in front of rover!")
+        else:
+            rover.ypos = rover.ypos-1
+    elif rover.direction == "East":
+        if x == len(map_grid[0])-1 or map_grid[y][x+1] == "#":  # check if next position is a wall
+            print("Cannot move, wall in front of rover!")
+        else:
+            rover.xpos = rover.xpos+1
+    elif rover.direction == "South":
+        if y == len(map_grid)-1 or map_grid[y+1][x] == "#":  # check if next position is a wall
+            print("Cannot move, wall in front of rover!")
+        else:
+            rover.ypos = rover.ypos+1
+    elif rover.direction == "West":
+        if x == 0 or map_grid[y][x-1] == "#":  # check if next position is a wall
+            print("Cannot move, wall in front of rover!")
+        else:
+            rover.xpos = rover.xpos-1
 
-        elif(rovers_db[rover_id].direction == 'East'):
-            xnew = rovers_db[rover_id].xpos + 1
-            ynew = rovers_db[rover_id].ypos
-            if(map_grid[xnew][ynew] != '#'):
-                rovers_db[rover_id].xpos = xnew
 
-        elif(rovers_db[rover_id].direction == 'West'):
-            xnew = rovers_db[rover_id].xpos - 1
-            ynew = rovers_db[rover_id].ypos
-            if(map_grid[xnew][ynew] != '#'):
-                rovers_db[rover_id].xpos = xnew
-    except IndexError:
-        print("Index Out of Range")
 
-def turn_right(facing):
-    directions = {
-        'North': 'East',
-        'East': 'South',
-        'South': 'West',
-        'West': 'North'
-    }
-    if facing in directions:
-        return directions[facing]
-    else:
-        return 'Invalid direction'
+def turn_right(rover):
+    """Updates the rover's direction to the left of its current direction"""
+    directions = ['North', 'East', 'South', 'West']
+    current_direction = rover.direction
+    current_index = directions.index(current_direction)
+    new_index = (current_index + 1) % 4  # wraps around to end of list if index becomes negative
+    new_direction = directions[new_index]
+    rover.direction = new_direction
+    return rover
 
 def turn_left(rover):
     """Updates the rover's direction to the left of its current direction"""
@@ -267,29 +267,6 @@ def turn_left(rover):
     rover.direction = new_direction
     return rover
 
-
-def turnLeft(rover_id: int):
-    if (rovers_db[rover_id].direction == 'North'):
-        rovers_db[rover_id].direction = 'West'
-    elif (rovers_db[rover_id].direction == 'East'):
-        rovers_db[rover_id].direction = 'North'
-    elif (rovers_db[rover_id].direction == 'South'):
-        rovers_db[rover_id].direction = 'East'
-    elif (rovers_db[rover_id].direction == 'West'):
-        rovers_db[rover_id].direction = 'South'
-    return rovers_db[rover_id].direction
-
-
-def turnRight(rover_id: int):
-    if (rovers_db[rover_id].direction == 'North'):
-        rovers_db[rover_id].direction = 'East'
-    elif (rovers_db[rover_id].direction == 'East'):
-        rovers_db[rover_id].direction = 'South'
-    elif (rovers_db[rover_id].direction == 'South'):
-        rovers_db[rover_id].direction = 'West'
-    elif (rovers_db[rover_id].direction == 'West'):
-        rovers_db[rover_id].direction = 'North'
-    return rovers_db[rover_id].direction
 
 def getMineID(x: int, y: int):
     for mine in mines_db:
