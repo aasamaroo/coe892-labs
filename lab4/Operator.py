@@ -11,7 +11,7 @@ import requests
 import json
 import hashlib
 import sys
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from typing import List, Tuple
 from pydantic import BaseModel
 from random import randint
@@ -474,3 +474,16 @@ def run(rover: int):
             if q == "C":
                 rovers_db[rover].status = "Finished"
             break
+
+
+
+
+#GET: Retrieve logs of a rover with a specified ID
+#Throw exception if Rover not found (404 error)
+@app.get('/rovers/{rover_id}/logs')
+def retrieveRoverLogs(rover_id: int):
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    with open("log_" + str(rover_id) + ".txt", "r") as f:
+        contents = f.read()
+    return contents
