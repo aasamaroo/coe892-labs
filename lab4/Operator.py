@@ -25,7 +25,9 @@ app = FastAPI()
 
 #Todo: Create objects for Map, Rover, and Mines
 class Map(BaseModel):
-    data: List[List[int]]
+    rows: int
+    cols: int
+    map: str
 
 
 
@@ -70,6 +72,9 @@ def getMap():
             if w >= 1:
                 arr.append(i)
             w = w + 1
+    map = str(arr)
+    rows = 4
+    cols = 6
     return map
 
 
@@ -211,21 +216,26 @@ def move_rover(rover_id: int):
         elif commands[i] == "D":
             dig(rover_id)
         else:
-            raise ValueError(f"Invalid command")
+            raise ValueError("Invalid command")
 
 
 def move_forward(rover_id):
-    if (Pos.xpos + 1 < 0) or (Pos.xpos + 1 >= len(arr)) or (Pos.ypos < 0) or (Pos.ypos >= len(arr[0])):
+    if (rovers_db[rover_id].xpos + 1 < 0) or (rovers_db[rover_id].xpos + 1 >= len(map)) or (rovers_db[rover_id].ypos < 0) or (rovers_db[rover_id].ypos >= len(map[0])):
         pass
-    else:
-        if rovers_db[rover_id].direction == "N":
-            rovers_db[rover_id].ypos += 1
-        elif rovers_db[rover_id].direction == "E":
-            rovers_db[rover_id].xpos += 1
-        elif rovers_db[rover_id].direction == "S":
-            rovers_db[rover_id].ypos -= 1
-        elif rovers_db[rover_id].direction == "W":
-            rovers_db[rover_id].xpos -= 1
+    for mine in mines_db:
+        if mines_db[mine].xpos == rovers_db[rover_id].xpos and mines_db[mine].ypos == rovers_db[rover_id].ypos:
+            rovers_db[rover_id].status = "Finished"
+            return{"message": f"Mine {mines_db[mine].id} has exploded. RIP Rover {rover_id}"}
+        else:
+            if rovers_db[rover_id].direction == "N":
+                rovers_db[rover_id].ypos += 1
+            elif rovers_db[rover_id].direction == "E":
+                rovers_db[rover_id].xpos += 1
+            elif rovers_db[rover_id].direction == "S":
+                rovers_db[rover_id].ypos -= 1
+            elif rovers_db[rover_id].direction == "W":
+                rovers_db[rover_id].xpos -= 1
+
 
 def turn_left(rover_id: int):
     if rovers_db[rover_id].direction == "N":
@@ -257,7 +267,7 @@ def dig(rover_id):
             mines_db[mine].isDefused = True
             return {"message": f"Defused mine with Serial Number {serialNum}, and PIN {pin}"}
         else:
-            return {"message": f"No mine here!"}
+            return {"message": "No mine here!"}
 
 
 def getMineSerialNum(x: int, y: int):
@@ -277,3 +287,180 @@ def getMinePIN(x: int, y: int):
             return hash
         else:
             return -1
+
+
+@app.post('/rovers/{rover_id}/dispatchtest')
+def dispatchRoverTest(rover_id: int):
+    sys.setrecursionlimit(10**6)
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    elif rovers_db[rover_id].status == "Finished":
+        raise HTTPException(status_code=405, detail="Rover is finished")
+    rovers_db[rover_id].status = "Ready"
+    run(rover_id)
+    return {"rover_id": rover_id}
+
+#To be tested
+def checkForMine(x: int, y: int):
+    result = False
+    for i in mines_db:
+        if mines_db[i].xpos == x and mines_db[i].ypos == y:
+            result = True
+    return result
+
+def run(rover: int):
+        class Pos:
+            xpos = rovers_db[rover].xpos
+            ypos = rovers_db[rover].ypos
+
+            def __init__(self, x, y):
+                Pos.xpos = Pos.xpos + x
+                Pos.ypos = Pos.ypos + y
+
+
+        #for i in range(1, 11):
+        i = -1
+        while i != 0:
+            i = str(rover)
+            if i == "0":
+                break
+            arr = getMap()
+            arr = arr[1: -1:]
+            arr2 = ""
+            for c in arr:
+                if c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9" or c == "0" or c == ",":
+                    arr2 = (arr2 + c)
+            arr2 = list(arr2.split(","))
+            # arr has all the values of the map in a list
+            arr = [arr2[x:x + 6] for x in range(0, len(arr2), 6)]
+            #print(arr[0])
+
+            # Start of the main code block
+            print("Rover number " + str(i) + " start:")
+            Pos.xpos = 0
+            Pos.ypos = 0
+            arr2 = [["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""]]
+
+            # Starting position for all rovers
+            arr2[0][0] = "*"
+
+            val = rovers_db[rover].data
+            print("Commands:" + val)
+            t = 0
+
+            for q in val:
+                dug = val[t + 1]
+                if t < len(val) - 2:
+                    t = t + 1
+                dugged = 0
+                if dug == "D":
+                    dugged = 1
+                if q == "M":
+                    print("Move Forward")
+                    if (Pos.xpos + 1 < 0) or (Pos.xpos + 1 >= len(arr)) or (Pos.ypos < 0) or (Pos.ypos >= len(arr[0])):
+                        print("Cant move forward, stay in the current spot")
+                        pass
+                    else:
+                        if int(arr[Pos.xpos + 1][Pos.ypos]) > 0:
+                            if dugged == 1:
+                                print("dig")
+                                pos = arr[Pos.xpos + 1][Pos.ypos]
+
+                                hash = getMinePIN(Pos.xpos+1, Pos.ypos)
+                                print("Pin number of the mine: "+hash)
+                                # val = hash(int(arr[Pos.xpos + 1][Pos.ypos]))
+                                print(str(hash))
+                                arr[Pos.xpos + 1][Pos.ypos] = "0"
+                                Pos(1, 0)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            print("mine exploded")
+                            Pos(1, 0)
+                            print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            break
+                        else:
+                            print("safe")
+                            Pos(1, 0)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                elif q == "L":
+                    print("Turn Left")
+                    if (Pos.xpos < 0) or (Pos.xpos >= len(arr)) or (Pos.ypos - 1 < 0) or (Pos.ypos - 1 >= len(arr[0])):
+                        print("Cant turn left, stay in the current spot")
+                        pass
+                    else:
+                        if int(arr[Pos.xpos][Pos.ypos - 1]) == 0:
+                            if dugged == 1:
+                                print("dig")
+                                pos = arr[Pos.xpos][Pos.ypos-1]
+                                hash = getMinePIN(Pos.xpos, Pos.yos-1)
+                                print("Pin number of the mine: "+hash)
+                                # val = hash(int(arr[Pos.xpos - 1][Pos.ypos]))
+
+                                arr[Pos.xpos][Pos.ypos - 1] = "0"
+                                Pos(0, -1)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            print("mine exploded")
+                            Pos(0, -1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            break
+                        else:
+                            print("safe")
+                            Pos(0, -1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                elif q == "R":
+                    print("Turn Right")
+                    if (Pos.xpos < 0) or (Pos.xpos >= len(arr)) or (Pos.ypos + 1 < 0) or (Pos.ypos + 1 >= len(arr[0])):
+                        print("Cant turn right, stay in the current spot")
+                        pass
+                    else:
+                        if int(arr[Pos.xpos][Pos.ypos + 1]) > 0:
+                            if dugged == 1:
+                                print("dig")
+                                pos = arr[Pos.xpos][Pos.ypos + 1]
+
+
+                                pin = getMinePIN(Pos.xpos,Pos.ypos + 1)
+                                print("Pin number of the mine: "+pin)
+
+                                arr[Pos.xpos][Pos.ypos + 1] = "0"
+                                Pos(0, 1)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            print("mine exploded")
+                            Pos(0, 1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            break
+                        else:
+                            print("safe")
+                            Pos(0, 1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+            print("Rover number " + str(i) + " completed")
+            print("")
+            print("Status of the 2D Array:")
+            for a in arr:
+                print(a)
+            print("")
+            print("Path of Rover number " + str(i) + ":")
+            f = open("path_" + str(i) + ".txt", "w+")
+            for b in arr2:
+                f.write(str(b) + "\n")
+                print(b)
+            f.close()
+            if q == "C":
+                rovers_db[rover].status = "Finished"
+            print("_______________________________________________")
+            break
