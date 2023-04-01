@@ -145,9 +145,8 @@ Cant move forward, stay in the current spot
 Current Position: [3,3]
 Rover number 1 completed
 
-Status of the 2D Array:
+Path that rover 1 has driven:
 ['*', '', '', '', '', '']
 ['*', '', '', '', '', '']
 ['*', '', '', '', '', '']
 ['*', '*', '*', '*', '*', '*']
-
