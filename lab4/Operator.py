@@ -64,13 +64,14 @@ def getMap():
 
     map_data = Map()
 
+#Read the number of rows and columns from first row of file
     with open("map.txt", "r") as f:
         rows, cols = map(int, f.readline().split())
 
     map_data.rows = rows
     map_data.cols = cols
 
-
+#Read the rest of the file to get the actual map
     with open("map.txt", 'r') as f:
         q = open("map.txt", "r")
         m = []
@@ -96,9 +97,14 @@ def getMap():
 #PUT: Update height and width of field
 @app.put('/map')
 def updateField(cols: int, rows: int):
+
+#Create new 2D list with new dimensions
     map_data = [[0] * cols for _ in range(rows)]
     with open("map.txt", "w") as f:
+#Write the new number of rows and columns to the text file
         f.write(f"{rows} {cols}\n")
+
+#Write the new map based on the new number of rows and columns
         for row in map_data:
             f.write(" ".join(str(x) for x in row) + "\n")
     return {"Message": "The map has been successfully updated."}
@@ -173,10 +179,11 @@ def updateMine(mine_id: int):
         raise HTTPException(status_code=405, detail="Mine has been defused. CTs Win!")
 
 #Put the mine in a random spot on the map (Must be within bounds of the map)
-    map_grid = getMap()
-    map_grid = map_grid[1: -1:]
-    xmax = len(map_grid)
-    ymax = len(map_grid[0])
+    map_data = getMap()
+    xmax = map_data.cols
+    ymax = map_data.rows
+    # print(xmax)
+    # print(ymax)
     mines_db[mine_id].xpos = randint(0,xmax)
     mines_db[mine_id].ypos = randint(0,ymax)
     return {"message": f"Mine {mine_id} updated successfully."}
@@ -220,7 +227,7 @@ def deleteRover(rover_id: int):
 
 #PUT: Send list of commands to Rover
 #404 error if Rover not found
-#Error thrown if Rover Status is "Not Started", or "Finished"
+#Error thrown if Rover Status is "Active"
 @app.put('/rovers/{rover_id}')
 def updateRover(rover_id: int):
     if rover_id not in rovers_db:
@@ -235,6 +242,7 @@ def updateRover(rover_id: int):
     return {"message": f"Rover {rover_id} updated successfully."}
 
 
+#Function to get PIN number of the mine. Used for Rover dispatch.
 def getMinePIN(x: int, y: int):
     for mine in mines_db:
         if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
@@ -248,19 +256,7 @@ def getMinePIN(x: int, y: int):
         else:
             return -1
 
-
-@app.post('/rovers/{rover_id}/dispatch')
-def dispatchRover(rover_id: int):
-    sys.setrecursionlimit(10**6)
-    if rover_id not in rovers_db:
-        raise HTTPException(status_code=404, detail="Rover not found")
-    elif rovers_db[rover_id].status == "Finished":
-        raise HTTPException(status_code=405, detail="Rover is finished")
-    rovers_db[rover_id].status = "Ready"
-    run(rover_id)
-    return {"rover_id": rover_id}
-
-
+#Function to check a position for a mine. Used for Rover dispatch.
 def checkForMine(x: int, y: int):
     result = False
     for i in mines_db:
@@ -268,6 +264,22 @@ def checkForMine(x: int, y: int):
             result = True
     return result
 
+#POST: Dispatch Rover function
+#Dispatch a rover of a specified ID
+@app.post('/rovers/{rover_id}/dispatch')
+def dispatchRover(rover_id: int):
+    sys.setrecursionlimit(10**6)
+    if rover_id not in rovers_db:
+        raise HTTPException(status_code=404, detail="Rover not found")
+    elif rovers_db[rover_id].status == "Finished":
+        raise HTTPException(status_code=405, detail="Rover is finished")
+    rovers_db[rover_id].status = "Active"
+    run(rover_id)
+    return {"rover_id": rover_id}
+
+
+
+#Function that does the actual dispatch functionalities. (Similar to lab 2)
 def run(rover: int):
         class Pos:
             xpos = rovers_db[rover].xpos
