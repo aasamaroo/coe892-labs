@@ -364,7 +364,7 @@ def run(rover: int):
                         print("Cant move forward, stay in the current spot")
                         pass
                     else:
-                        if int(arr[Pos.xpos + 1][Pos.ypos]) > 0:
+                        if checkForMine(Pos.xpos + 1,Pos.ypos):
                             if dugged == 1:
                                 print("dig")
                                 pos = arr[Pos.xpos + 1][Pos.ypos]
@@ -394,7 +394,7 @@ def run(rover: int):
                         print("Cant turn left, stay in the current spot")
                         pass
                     else:
-                        if int(arr[Pos.xpos][Pos.ypos - 1]) == 0:
+                        if checkForMine(Pos.xpos,Pos.ypos - 1):
                             if dugged == 1:
                                 print("dig")
                                 pos = arr[Pos.xpos][Pos.ypos-1]
@@ -423,7 +423,7 @@ def run(rover: int):
                         print("Cant turn right, stay in the current spot")
                         pass
                     else:
-                        if int(arr[Pos.xpos][Pos.ypos + 1]) > 0:
+                        if checkForMine(Pos.xpos,Pos.ypos + 1):
                             if dugged == 1:
                                 print("dig")
                                 pos = arr[Pos.xpos][Pos.ypos + 1]
