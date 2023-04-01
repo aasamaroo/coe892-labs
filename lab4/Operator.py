@@ -20,16 +20,8 @@ app = FastAPI()
 
 
 #------------------------------------------
-#      Map, Rover, and Mine Objects
+#      Rover, and Mine Objects
 #------------------------------------------
-
-#Todo: Create objects for Map, Rover, and Mines
-class Map(BaseModel):
-    rows: int
-    cols: int
-    map: str
-
-
 
 class Rover(BaseModel):
     id: int
@@ -37,7 +29,6 @@ class Rover(BaseModel):
     status: str
     xpos: int
     ypos: int
-    direction: str
 
 #db to store all rovers
 rovers_db = {}
@@ -49,6 +40,7 @@ class Mine(BaseModel):
     serialNum: int
     id: int
 
+#db to store all mines
 mines_db = {}
 
 #--------------------------------------------------
@@ -57,6 +49,7 @@ mines_db = {}
 #
 #--------------------------------------------------
 
+#GET: Get the map from reading the map.txt file (similar to lab 2)
 @app.get('/map')
 def getMap():
     with open("map.txt", 'r') as f:
@@ -80,11 +73,12 @@ def getMap():
 
 #PUT: Update height and width of field
 @app.put('/map')
-def updateField(map_data: Map):
+def updateField(cols: int, rows: int):
+    map_data = [[0] * cols for _ in range(rows)]
     with open("map.txt", "w") as f:
-        for row in map_data.data:
-            f.write(" ".join(str(cell) for cell in row))
-            f.write("\n")
+        f.write(f"{rows} {cols}\n")
+        for row in map_data:
+            f.write(" ".join(str(x) for x in row) + "\n")
     return {"Message": "The map has been successfully updated."}
 
 #--------------------------------------------------
@@ -102,39 +96,67 @@ def retrieveListMines():
 #Throws exception if Mine not found (404 error)
 @app.get('/mines/{mine_id}')
 def retrieveMine(mine_id: int):
+
+#Check if the mine with the specified ID is in the database
     if mine_id not in mines_db:
         raise HTTPException(status_code=404, detail="Mine not found")
+#Retrieve the mine
     return mines_db[mine_id]
+
+
+
 
 #DELETE: Delete a mine specified by their ID
 #Throws 404 error if Mine not found
 @app.delete('/mines/{mine_id}')
 def deleteMine(mine_id: int):
+
+#Check if the mine with the specified ID is in the database
     if mine_id not in mines_db:
         raise HTTPException(status_code=404, detail="Mine not found")
+
+#Delete the specified mine
     del mines_db[mine_id]
     return {"message": f"Mine {mine_id} has been successfully deleted"}
+
+
+
 
 #POST: Create a new mine
 @app.post('/mines')
 def addMine(mine: Mine):
-    # Check if rover with same ID already exists
+
+# Check if mine with same ID already exists
     if mine.id in mines_db:
         return {"error": "Rover with the same ID already exists"}
-    # Add rover to database
+
+# Add mine to database
     mines_db[mine.id] = mine
-    return {"message": f"Rover {mine.id} created successfully"}
+    return {"message": f"Mine {mine.id} created successfully"}
+
+
+
 
 #PUT: Update a mine
 #404 error if Mine not found
 @app.put('/mines/{mine_id}')
 def updateMine(mine_id: int):
+
+#Check if a mine with the specified ID exists
     if mine_id not in mines_db:
         raise HTTPException(status_code=404, detail="Mine not found")
+
+#Check if the mine has already been defused
     elif mines_db[mine_id].isDefused == True:
         raise HTTPException(status_code=405, detail="Mine has been defused. CTs Win!")
-    mines_db[mine_id].xpos = randint(1,5)
-    mines_db[mine_id].ypos = randint(1,5)
+
+#Put the mine in a random spot on the map (Must be within bounds of the map)
+    map_grid = getMap()
+    map_grid = map_grid[1: -1:]
+    xmax = len(map_grid)
+    ymax = len(map_grid[0])
+    mines_db[mine_id].xpos = randint(0,xmax)
+    mines_db[mine_id].ypos = randint(0,ymax)
     return {"message": f"Mine {mine_id} updated successfully."}
 #--------------------------------------------------
 #
@@ -191,91 +213,6 @@ def updateRover(rover_id: int):
     return {"message": f"Rover {rover_id} updated successfully."}
 
 
-#POST: Dispatch Rover with specified ID
-@app.post('/rovers/{rover_id}/dispatch')
-def dispatchRover(rover_id: int):
-    sys.setrecursionlimit(10**6)
-    if rover_id not in rovers_db:
-        raise HTTPException(status_code=404, detail="Rover not found")
-    elif rovers_db[rover_id].status == "Finished":
-        raise HTTPException(status_code=405, detail="Rover is finished")
-    rovers_db[rover_id].status = "Ready"
-    move_rover(rover_id)
-    return {"rover_id": rover_id}
-
-
-def move_rover(rover_id: int):
-    commands = rovers_db[rover_id].data
-    for i in range(len(commands)):
-        if commands[i] == "M":
-            move_forward(rover_id)
-        elif commands[i] == "L":
-            turn_left(rover_id)
-        elif commands[i] == "R":
-            turn_right(rover_id)
-        elif commands[i] == "D":
-            dig(rover_id)
-        else:
-            raise ValueError("Invalid command")
-
-
-def move_forward(rover_id):
-    if (rovers_db[rover_id].xpos + 1 < 0) or (rovers_db[rover_id].xpos + 1 >= len(map)) or (rovers_db[rover_id].ypos < 0) or (rovers_db[rover_id].ypos >= len(map[0])):
-        pass
-    for mine in mines_db:
-        if mines_db[mine].xpos == rovers_db[rover_id].xpos and mines_db[mine].ypos == rovers_db[rover_id].ypos:
-            rovers_db[rover_id].status = "Finished"
-            return{"message": f"Mine {mines_db[mine].id} has exploded. RIP Rover {rover_id}"}
-        else:
-            if rovers_db[rover_id].direction == "N":
-                rovers_db[rover_id].ypos += 1
-            elif rovers_db[rover_id].direction == "E":
-                rovers_db[rover_id].xpos += 1
-            elif rovers_db[rover_id].direction == "S":
-                rovers_db[rover_id].ypos -= 1
-            elif rovers_db[rover_id].direction == "W":
-                rovers_db[rover_id].xpos -= 1
-
-
-def turn_left(rover_id: int):
-    if rovers_db[rover_id].direction == "N":
-        rovers_db[rover_id].direction = "W"
-    elif rovers_db[rover_id].direction == "W":
-        rovers_db[rover_id].direction = "S"
-    elif rovers_db[rover_id].direction == "S":
-        rovers_db[rover_id].direction = "E"
-    elif rovers_db[rover_id].direction == "E":
-        rovers_db[rover_id].direction = "N"
-
-def turn_right(rover_id: int):
-    if rovers_db[rover_id].direction == "N":
-        rovers_db[rover_id].direction = "E"
-    elif rovers_db[rover_id].direction == "E":
-        rovers_db[rover_id].direction = "S"
-    elif rovers_db[rover_id].direction == "S":
-        rovers_db[rover_id].direction = "W"
-    elif rovers_db[rover_id].direction == "W":
-        rovers_db[rover_id].direction = "N"
-
-def dig(rover_id):
-    x = rovers_db[rover_id].xpos
-    y = rovers_db[rover_id].ypos
-    for mine in mines_db:
-        if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
-            serialNum = getMineSerialNum(x,y)
-            pin = getMinePIN(x,y)
-            mines_db[mine].isDefused = True
-            return {"message": f"Defused mine with Serial Number {serialNum}, and PIN {pin}"}
-        else:
-            return {"message": "No mine here!"}
-
-
-def getMineSerialNum(x: int, y: int):
-    for mine in mines_db:
-        if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
-            serialNum = mines_db[mine].serialNum
-            return serialNum
-
 def getMinePIN(x: int, y: int):
     for mine in mines_db:
         if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
@@ -284,13 +221,14 @@ def getMinePIN(x: int, y: int):
             tempMineKey = str(pin) + str(serialNum)
             encode = tempMineKey.encode()
             hash = hashlib.sha256(encode).hexdigest()
+            mines_db[mine].isDefused = True
             return hash
         else:
             return -1
 
 
 @app.post('/rovers/{rover_id}/dispatchtest')
-def dispatchRoverTest(rover_id: int):
+def dispatchRover(rover_id: int):
     sys.setrecursionlimit(10**6)
     if rover_id not in rovers_db:
         raise HTTPException(status_code=404, detail="Rover not found")
@@ -300,7 +238,7 @@ def dispatchRoverTest(rover_id: int):
     run(rover_id)
     return {"rover_id": rover_id}
 
-#To be tested
+
 def checkForMine(x: int, y: int):
     result = False
     for i in mines_db:
