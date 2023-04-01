@@ -274,8 +274,9 @@ def dispatchRover(rover_id: int):
     elif rovers_db[rover_id].status == "Finished":
         raise HTTPException(status_code=405, detail="Rover is finished")
     rovers_db[rover_id].status = "Active"
-    run(rover_id)
-    return {"rover_id": rover_id}
+    #run(rover_id)
+    runtest(rover_id)
+    return {"message": f"{rover_id} has been dispatched."}
 
 
 
@@ -424,6 +425,218 @@ def run(rover: int):
             print("Rover number " + str(i) + " completed")
             print("")
             print("Status of the 2D Array:")
+            for a in arr:
+                print(a)
+            print("")
+            print("Path of Rover number " + str(i) + ":")
+            f = open("path_" + str(i) + ".txt", "w+")
+            for b in arr2:
+                f.write(str(b) + "\n")
+                print(b)
+            f.close()
+            if q == "C":
+                rovers_db[rover].status = "Finished"
+            print("_______________________________________________")
+            break
+
+
+#Function that does the actual dispatch functionalities. (Similar to lab 2)
+#THIS IS A TEST
+def runtest(rover: int):
+        class Pos:
+            xpos = rovers_db[rover].xpos
+            ypos = rovers_db[rover].ypos
+
+            def __init__(self, x, y):
+                Pos.xpos = Pos.xpos + x
+                Pos.ypos = Pos.ypos + y
+
+
+        #for i in range(1, 11):
+        i = -1
+        while i != 0:
+            i = str(rover)
+            if i == "0":
+                break
+            arr = getMap()
+            arr = arr.data
+            arr = arr[1: -1:]
+            arr2 = ""
+            for c in arr:
+                if c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9" or c == "0" or c == ",":
+                    arr2 = (arr2 + c)
+            arr2 = list(arr2.split(","))
+            # arr has all the values of the map in a list
+            arr = [arr2[x:x + 6] for x in range(0, len(arr2), 6)]
+            #print(arr[0])
+
+            # Start of the main code block
+            #print("Rover number " + str(i) + " start:")
+            with open("log_" + str(i) + ".txt", "w") as f:
+                f.write("Rover number " + str(i) + " start:\n")
+            Pos.xpos = 0
+            Pos.ypos = 0
+            arr2 = [["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""],
+                    ["", "", "", "", "", ""]]
+
+            # Starting position for all rovers
+            arr2[0][0] = "*"
+
+            val = rovers_db[rover].data
+            #print("Commands:" + val)
+            with open("log_" + str(i) + ".txt", "a") as f:
+                f.write("Commands:" + val + "\n")
+            t = 0
+
+            for q in val:
+                dug = val[t + 1]
+                if t < len(val) - 2:
+                    t = t + 1
+                dugged = 0
+                if dug == "D":
+                    dugged = 1
+                if q == "M":
+                    #print("Move Forward")
+                    with open("log_" + str(i) + ".txt", "a") as f:
+                        f.write("Move Forward\n")
+                    if (Pos.xpos + 1 < 0) or (Pos.xpos + 1 >= len(arr)) or (Pos.ypos < 0) or (Pos.ypos >= len(arr[0])):
+                        #print("Cant move forward, stay in the current spot")
+                        with open("log_" + str(i) + ".txt", "a") as f:
+                            f.write("Cant move forward, stay in the current spot\n")
+                        pass
+                    else:
+                        if checkForMine(Pos.xpos + 1,Pos.ypos):
+                            if dugged == 1:
+                                #print("dig")
+                                with open("log_" + str(i) + ".txt", "a") as f:
+                                    f.write("Dig\n")
+                                #pos = arr[Pos.xpos + 1][Pos.ypos]
+                                hash = getMinePIN(Pos.xpos+1, Pos.ypos)
+                                #print("Pin number of the mine: "+hash)
+                                with open("log_" + str(i) + ".txt", "a") as f:
+                                    f.write("Pin number of the mine: "+hash+"\n")
+                                # val = hash(int(arr[Pos.xpos + 1][Pos.ypos]))
+                                print(str(hash))
+                                arr[Pos.xpos + 1][Pos.ypos] = "0"
+                                Pos(1, 0)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            #print("mine exploded")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            Pos(1, 0)
+                            #print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]\n")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            break
+                        else:
+                            #print("safe")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Safe for now...\n")
+                            Pos(1, 0)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                elif q == "L":
+                    print("Turn Left")
+                    with open("log_" + str(i) + ".txt", "a") as f:
+                        f.write("Turn left\n")
+                    if (Pos.xpos < 0) or (Pos.xpos >= len(arr)) or (Pos.ypos - 1 < 0) or (Pos.ypos - 1 >= len(arr[0])):
+                        print("Cant turn left, stay in the current spot")
+                        with open("log_" + str(i) + ".txt", "a") as f:
+                            f.write("Cannot turn left\n")
+                        pass
+                    else:
+                        if checkForMine(Pos.xpos,Pos.ypos - 1):
+                            if dugged == 1:
+                                #print("dig")
+                                with open("log_" + str(i) + ".txt", "a") as f:
+                                    f.write("Dig\n")
+                                pos = arr[Pos.xpos][Pos.ypos-1]
+                                hash = getMinePIN(Pos.xpos, Pos.yos-1)
+                                #print("Pin number of the mine: "+hash)
+                                with open("log_" + str(i) + ".txt", "a") as f:
+                                    f.write("Pin number of the mine: "+hash+"\n")
+                                # val = hash(int(arr[Pos.xpos - 1][Pos.ypos]))
+
+                                arr[Pos.xpos][Pos.ypos - 1] = "0"
+                                Pos(0, -1)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            #print("mine exploded")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            Pos(0, -1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            #print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]\n")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            break
+                        else:
+                            print("safe")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Safe for now...\n")
+                            Pos(0, -1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                elif q == "R":
+                    print("Turn Right")
+                    with open("log_" + str(i) + ".txt", "a") as f:
+                        f.write("Turn right\n")
+                    if (Pos.xpos < 0) or (Pos.xpos >= len(arr)) or (Pos.ypos + 1 < 0) or (Pos.ypos + 1 >= len(arr[0])):
+                        print("Cant turn right, stay in the current spot")
+                        with open("log_" + str(i) + ".txt", "a") as f:
+                            f.write("Cannot turn right\n")
+                        pass
+                    else:
+                        if checkForMine(Pos.xpos,Pos.ypos + 1):
+                            if dugged == 1:
+                                print("dig")
+                                pos = arr[Pos.xpos][Pos.ypos + 1]
+
+
+                                pin = getMinePIN(Pos.xpos,Pos.ypos + 1)
+                                print("Pin number of the mine: "+pin)
+                                with open("log_" + str(i) + ".txt", "a") as f:
+                                    f.write("Pin number of the mine: "+hash+"\n")
+
+                                arr[Pos.xpos][Pos.ypos + 1] = "0"
+                                Pos(0, 1)
+                                arr2[Pos.xpos][Pos.ypos] = "*"
+                                continue
+                            print("mine exploded")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            Pos(0, 1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+                            print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]\n")
+                            arr[Pos.xpos][Pos.ypos] = "0"
+                            break
+                        else:
+                            print("safe")
+                            with open("log_" + str(i) + ".txt", "a") as f:
+                                f.write("Safe for now...\n")
+                            Pos(0, 1)
+                            arr2[Pos.xpos][Pos.ypos] = "*"
+
+                print("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]")
+            print("Rover number " + str(i) + " completed")
+            print("")
+            print("Status of the 2D Array:")
+            with open("log_" + str(i) + ".txt", "a") as f:
+                f.write("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]\n")
+                f.write("Rover number " + str(i) + " completed\n")
+                f.write("\n")
+                f.write("Status of the 2D Array:\n")
+            with open("path_" + str(i) + ".txt", "r") as input_file:
+                with open("log_" + str(i) + ".txt", "a") as output_file:
+                    output_file.write(input_file.read())
             for a in arr:
                 print(a)
             print("")
