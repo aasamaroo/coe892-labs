@@ -20,8 +20,14 @@ app = FastAPI()
 
 
 #------------------------------------------
-#      Rover, and Mine Objects
+#      Map, Rover, and Mine Objects
 #------------------------------------------
+
+class MapData(BaseModel):
+    rows: int
+    cols: int
+    data: str
+
 
 class Rover(BaseModel):
     id: int
@@ -49,26 +55,42 @@ mines_db = {}
 #
 #--------------------------------------------------
 
-#GET: Get the map from reading the map.txt file (similar to lab 2)
 @app.get('/map')
 def getMap():
+    class Map():
+        rows = 0
+        cols = 0
+        data = []
+
+    map_data = Map()
+
+    with open("map.txt", "r") as f:
+        rows, cols = map(int, f.readline().split())
+
+    map_data.rows = rows
+    map_data.cols = cols
+
+
     with open("map.txt", 'r') as f:
         q = open("map.txt", "r")
-        map = []
+        m = []
         arr = []
         for line in q:
             stripedL = line.rstrip()
             row = stripedL.split(' ')
-            map.append(row)
+            m.append(row)
         w = 0
-        for i in map:
+        for i in m:
             if w >= 1:
                 arr.append(i)
             w = w + 1
-    map = str(arr)
-    rows = 4
-    cols = 6
-    return map
+    m = str(arr)
+
+    map_data.data = m
+
+    return map_data
+
+
 
 
 #PUT: Update height and width of field
@@ -227,7 +249,7 @@ def getMinePIN(x: int, y: int):
             return -1
 
 
-@app.post('/rovers/{rover_id}/dispatchtest')
+@app.post('/rovers/{rover_id}/dispatch')
 def dispatchRover(rover_id: int):
     sys.setrecursionlimit(10**6)
     if rover_id not in rovers_db:
@@ -263,6 +285,7 @@ def run(rover: int):
             if i == "0":
                 break
             arr = getMap()
+            arr = arr.data
             arr = arr[1: -1:]
             arr2 = ""
             for c in arr:
