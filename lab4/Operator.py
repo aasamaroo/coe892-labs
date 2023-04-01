@@ -35,6 +35,7 @@ class Rover(BaseModel):
     status: str
     xpos: int
     ypos: int
+    direction: str
 
 #db to store all rovers
 rovers_db = {}
@@ -45,7 +46,6 @@ class Mine(BaseModel):
     isDefused: bool = False
     serialNum: int
     id: int
-    pin: int
 
 mines_db = {}
 
@@ -195,38 +195,76 @@ def dispatchRover(rover_id: int):
     elif rovers_db[rover_id].status == "Finished":
         raise HTTPException(status_code=405, detail="Rover is finished")
     rovers_db[rover_id].status = "Ready"
-    roverMovement(rover_id)
+    move_rover(rover_id)
     return {"rover_id": rover_id}
 
 
-def roverMovement(rover_id):
-    arr = getMap()
-    arr = arr[1: -1:]
-    arr2 = ""
-    for c in arr:
-        if c == "0" or c == "1" or c == "2" or c == "3" or c == "4" or c == "5" or c == "6" or c == "7" or c == "8" or c == "9" or c == "0" or c == ",":
-            arr2 = (arr2 + c)
-    arr2 = list(arr2.split(","))
-    arr = [arr2[x:x + 6] for x in range(0, len(arr2), 6)]
-    arr2 = [["", "", "", "", "", ""],
-            ["", "", "", "", "", ""],
-            ["", "", "", "", "", ""],
-            ["", "", "", "", "", ""]]
-    arr2[0][0] = "*"
-    val = rovers_db[rover_id].data
-    t = 0
-    for q in val:
-        dug = val[t+1]
-        if t < len(val)-2:
-            t = t+1
-        dugged = 0
-        if dug == "D":
-            dugged = 1
-        if q == "M":
-            #do stuff
+def move_rover(rover_id: int):
+    commands = rovers_db[rover_id].data
+    for i in range(len(commands)):
+        if commands[i] == "M":
+            move_forward(rover_id)
+        elif commands[i] == "L":
+            turn_left(rover_id)
+        elif commands[i] == "R":
+            turn_right(rover_id)
+        elif commands[i] == "D":
+            dig(rover_id)
+        else:
+            raise ValueError(f"Invalid command")
 
-def getMineSerialNum():
-    #do stuff
+
+def move_forward(rover_id):
+    if (Pos.xpos + 1 < 0) or (Pos.xpos + 1 >= len(arr)) or (Pos.ypos < 0) or (Pos.ypos >= len(arr[0])):
+        pass
+    else:
+        if rovers_db[rover_id].direction == "N":
+            rovers_db[rover_id].ypos += 1
+        elif rovers_db[rover_id].direction == "E":
+            rovers_db[rover_id].xpos += 1
+        elif rovers_db[rover_id].direction == "S":
+            rovers_db[rover_id].ypos -= 1
+        elif rovers_db[rover_id].direction == "W":
+            rovers_db[rover_id].xpos -= 1
+
+def turn_left(rover_id: int):
+    if rovers_db[rover_id].direction == "N":
+        rovers_db[rover_id].direction = "W"
+    elif rovers_db[rover_id].direction == "W":
+        rovers_db[rover_id].direction = "S"
+    elif rovers_db[rover_id].direction == "S":
+        rovers_db[rover_id].direction = "E"
+    elif rovers_db[rover_id].direction == "E":
+        rovers_db[rover_id].direction = "N"
+
+def turn_right(rover_id: int):
+    if rovers_db[rover_id].direction == "N":
+        rovers_db[rover_id].direction = "E"
+    elif rovers_db[rover_id].direction == "E":
+        rovers_db[rover_id].direction = "S"
+    elif rovers_db[rover_id].direction == "S":
+        rovers_db[rover_id].direction = "W"
+    elif rovers_db[rover_id].direction == "W":
+        rovers_db[rover_id].direction = "N"
+
+def dig(rover_id):
+    x = rovers_db[rover_id].xpos
+    y = rovers_db[rover_id].ypos
+    for mine in mines_db:
+        if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
+            serialNum = getMineSerialNum(x,y)
+            pin = getMinePIN(x,y)
+            mines_db[mine].isDefused = True
+            return {"message": f"Defused mine with Serial Number {serialNum}, and PIN {pin}"}
+        else:
+            return {"message": f"No mine here!"}
+
+
+def getMineSerialNum(x: int, y: int):
+    for mine in mines_db:
+        if mines_db[mine].xpos == x and mines_db[mine].ypos == y:
+            serialNum = mines_db[mine].serialNum
+            return serialNum
 
 def getMinePIN(x: int, y: int):
     for mine in mines_db:
