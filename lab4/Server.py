@@ -328,7 +328,7 @@ def dispatchRover(rover_id: int):
         raise HTTPException(status_code=404, detail="Rover not found")
     elif rovers_db[rover_id].status == "Finished":
         raise HTTPException(status_code=405, detail="Rover is finished")
-    rovers_db[rover_id].status = "Active"
+    rovers_db[rover_id].status = "Moving"
     run(rover_id)
     return {"message": f"{rover_id} has been dispatched."}
 
@@ -409,6 +409,7 @@ def run(rover: int):
                                 continue
                             with open("log_" + str(i) + ".txt", "a") as f:
                                 f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            rovers_db[rover].status = "Eliminated"
                             Pos(1, 0)
                             with open("log_" + str(i) + ".txt", "a") as f:
                                 f.write("Current Position: [" + str(Pos.xpos) + "," + str(Pos.ypos) + "]\n")
@@ -443,6 +444,7 @@ def run(rover: int):
                                 continue
                             with open("log_" + str(i) + ".txt", "a") as f:
                                 f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            rovers_db[rover].status = "Eliminated"
                             Pos(0, -1)
                             arr2[Pos.xpos][Pos.ypos] = "*"
                             with open("log_" + str(i) + ".txt", "a") as f:
@@ -480,6 +482,7 @@ def run(rover: int):
                                 continue
                             with open("log_" + str(i) + ".txt", "a") as f:
                                 f.write("BEEPBEEPBEEP BOOOOOOOOOOOOOOM *Screaming Noises*\n")
+                            rovers_db[rover].status = "Eliminated"
                             Pos(0, 1)
                             arr2[Pos.xpos][Pos.ypos] = "*"
                             with open("log_" + str(i) + ".txt", "a") as f:

@@ -47,7 +47,7 @@ def run():
                 mineNum = int(mineNo)
                 payload = {'mine_id': mineNum}
                 mine = requests.get(baseurl+"/mines/"+mineNo)
-                print(mine.text)
+                printJson(mine.json())
             elif mineOption == "3":
                 mineNo = input("Enter the ID of the Mine you wish to delete: ")
                 mineNum = int(mineNo)
@@ -66,7 +66,51 @@ def run():
                 payload = {'mine_id': mineNum}
                 mine = requests.put(baseurl+"/mines/"+mineNo, params=payload)
                 print(mine.text)
-
+        elif i == "3":
+            roverOption = input("Which rover option would you like?\n1: View all Rovers\n2: View a Specific Rover\n3: Create a New Rover\n4: Delete a Specified Rover\n5: Send a list of commands to a Rover\n6: Dispatch a Specified Rover\n7: View logs of a Specified Rover\n8: Go Back\n0: Exit Program\n")
+            if roverOption == "1":
+                response = requests.get(baseurl+"/rovers")
+                print("These are all of the present Rovers:\n")
+                printJson(response.json())
+            elif roverOption == "2":
+                roverNo = input("Enter the ID of the Rover you wish to view: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.get(baseurl+"/rovers/"+roverNo)
+                printJson(rover.json())
+            elif roverOption == "3":
+                roverNo = input("Enter the ID of the Rover you wish to add: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.post(baseurl+"/rovers", params=payload)
+                print(rover.text)
+            elif roverOption == "4":
+                roverNo = input("Enter the ID of the Rover you wish to delete: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.delete(baseurl+"/rovers/"+roverNo)
+                print(rover.text)
+            elif roverOption == "5":
+                roverNo = input("Enter the ID of the Rover you wish to update: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.put(baseurl+"/rovers/"+roverNo, params=payload)
+                print(rover.text)
+            elif roverOption == "6":
+                roverNo = input("Enter the ID of the Rover you wish to update: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.post(baseurl+"/rovers/"+roverNo+"/dispatch", params=payload)
+                print(rover.text)
+            elif roverOption == "7":
+                roverNo = input("Enter the ID of the Rover you wish to update: ")
+                roverNum = int(roverNo)
+                payload = {'rover_id': roverNum}
+                rover = requests.get(baseurl+"/rovers/"+roverNo+"/logs", params=payload)
+                print(rover.text)
+            elif roverOption == "0":
+                break;
+    print("Try not to blow up!")
 
 
 if __name__ == '__main__':
