@@ -221,18 +221,6 @@ def retrieveRover(rover_id: int):
     return rovers_db[rover_id]
 
 
-
-
-#POST: Create new rover
-# @app.post('/rovers')
-# def addRover(rover: Rover):
-#     # Check if rover with same ID already exists
-#     if rover.id in rovers_db:
-#         return {"error": "Rover with the same ID already exists"}
-#     # Add rover to database
-#     rovers_db[rover.id] = rover
-#     return {"message": f"Rover {rover.id} created successfully"}
-
 @app.post('/rovers')
 def addRover(rover_id: int):
 
