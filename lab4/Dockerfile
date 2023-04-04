@@ -1,8 +1,6 @@
 # Choose Python Version
 FROM python:3.9
 
-RUN mkdir /code
-
 
 #Setup working directory
 WORKDIR /app
