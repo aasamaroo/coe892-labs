@@ -172,6 +172,7 @@ def addMine(mine_id: int):
     ymax = map_data.rows
     mine_data.xpos = randint(0,xmax)
     mine_data.ypos = randint(0, ymax)
+    mine_data.serialNum = randint(0,999)
     mines_db[mine_id] = mine_data
     return {"message": f"Mine {mine_id} created successfully"}
 
