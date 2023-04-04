@@ -1,10 +1,11 @@
 import requests
 import json
+import os
 from dotenv import load_dotenv
 
 #retrieve url from .env file
-# load_dotenv()
-# URL = os.getenv('URL')
+load_dotenv()
+URL = os.getenv('URL')
 
 baseurl = "http://localhost:8000"
 
