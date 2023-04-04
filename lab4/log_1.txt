@@ -1,0 +1,152 @@
+Rover number 1 start:
+Commands:['MMMMRMLRRRLRMLMRMLMMMLMMRMMLDMLMMMMMLRLLRDMMMLDMLRDMRLMRMRMRRMLRLLRMDRMRDLMDLM']
+Move Forward
+Safe for now...
+Move Forward
+Safe for now...
+Move Forward
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Turn right
+Safe for now...
+Turn right
+Safe for now...
+Turn right
+Safe for now...
+Turn left
+Safe for now...
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Cannot turn left
+Turn right
+Safe for now...
+Turn left
+Safe for now...
+Turn left
+Cannot turn left
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Cannot turn left
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Turn right
+Safe for now...
+Turn left
+Safe for now...
+Turn left
+Safe for now...
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn right
+Cannot turn right
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Turn left
+Safe for now...
+Move Forward
+Cant move forward, stay in the current spot
+Current Position: [3,3]
+Rover number 1 completed
+
+Path that rover 1 has driven:
+['*', '', '', '', '', '']
+['*', '', '', '', '', '']
+['*', '', '', '', '', '']
+['*', '*', '*', '*', '*', '*']

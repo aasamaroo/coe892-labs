@@ -1,18 +1,21 @@
 # Choose Python Version
 FROM python:3.9
 
+RUN mkdir /code
+
+
 #Setup working directory
-WORKDIR /code
+WORKDIR /app
 
 #Copy requirements into working directory
-COPY ./requirements.txt /code/requirements.txt
+COPY requirements.txt .
 
 #Install dependencies
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 
 #Copy code to working directory
-COPY ./app /code/app
+COPY . .
 
 EXPOSE 8000
 
