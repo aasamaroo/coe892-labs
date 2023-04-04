@@ -152,15 +152,28 @@ def deleteMine(mine_id: int):
 
 #POST: Create a new mine
 @app.post('/mines')
-def addMine(mine: Mine):
+def addMine(mine_id: int):
 
+    class Mine():
+        xpos: int
+        ypos: int
+        isDefused: bool = False
+        serialNum: int
+        id: int
 # Check if mine with same ID already exists
-    if mine.id in mines_db:
+    if mine_id in mines_db:
         return {"error": "Rover with the same ID already exists"}
 
 # Add mine to database
-    mines_db[mine.id] = mine
-    return {"message": f"Mine {mine.id} created successfully"}
+    mine_data = Mine()
+    mine_data.id = mine_id
+    map_data = getMap()
+    xmax = map_data.cols
+    ymax = map_data.rows
+    mine_data.xpos = randint(0,xmax)
+    mine_data.ypos = randint(0, ymax)
+    mines_db[mine_id] = mine_data
+    return {"message": f"Mine {mine_id} created successfully"}
 
 
 
@@ -182,8 +195,6 @@ def updateMine(mine_id: int):
     map_data = getMap()
     xmax = map_data.cols
     ymax = map_data.rows
-    # print(xmax)
-    # print(ymax)
     mines_db[mine_id].xpos = randint(0,xmax)
     mines_db[mine_id].ypos = randint(0,ymax)
     return {"message": f"Mine {mine_id} updated successfully."}
@@ -213,14 +224,37 @@ def retrieveRover(rover_id: int):
 
 
 #POST: Create new rover
+# @app.post('/rovers')
+# def addRover(rover: Rover):
+#     # Check if rover with same ID already exists
+#     if rover.id in rovers_db:
+#         return {"error": "Rover with the same ID already exists"}
+#     # Add rover to database
+#     rovers_db[rover.id] = rover
+#     return {"message": f"Rover {rover.id} created successfully"}
+
 @app.post('/rovers')
-def addRover(rover: Rover):
+def addRover(rover_id: int):
+
+    class Rover():
+        id: int
+        data: str
+        status: str
+        xpos: int
+        ypos: int
+
     # Check if rover with same ID already exists
-    if rover.id in rovers_db:
+    if rover_id in rovers_db:
         return {"error": "Rover with the same ID already exists"}
     # Add rover to database
-    rovers_db[rover.id] = rover
-    return {"message": f"Rover {rover.id} created successfully"}
+    rover_data = Rover()
+    rover_data.id = rover_id
+    rover_data.xpos = 0
+    rover_data.ypos = 0
+    rover_data.status = "NotStarted"
+    rover_data.data = " "
+    rovers_db[rover_id] = rover_data
+    return {"message": f"Rover {rover_id} created successfully"}
 
 
 

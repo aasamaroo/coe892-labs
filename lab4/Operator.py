@@ -32,13 +32,40 @@ def run():
                 cols = int(cols)
                 rows = int(rows)
                 payload = {'cols': cols, 'rows': rows}
-                headers = {"Content-Type": "application/json"}
                 newMap = requests.put(baseurl+"/map", params=payload)
                 print(newMap.text)
             elif mapOption == "0":
                 break;
         elif i == "2":
-            mineOption = input()
+            mineOption = input("Which mine option would you like?\n1: View all Mines\n2: View a Specific Mine\n3: Delete a Mine\n4: Add a Mine\n5: Update a Mine\n6: Go Back\n0: Exit Program\n")
+            if mineOption == "1":
+                response = requests.get(baseurl+"/mines")
+                print("These are all of the present Mines:\n")
+                printJson(response.json())
+            elif mineOption == "2":
+                mineNo = input("Enter the ID of the Mine you wish to view: ")
+                mineNum = int(mineNo)
+                payload = {'mine_id': mineNum}
+                mine = requests.get(baseurl+"/mines/"+mineNo)
+                print(mine.text)
+            elif mineOption == "3":
+                mineNo = input("Enter the ID of the Mine you wish to delete: ")
+                mineNum = int(mineNo)
+                payload = {'mine_id': mineNum}
+                mine = requests.delete(baseurl+"/mines/"+mineNo)
+                print(mine.text)
+            elif mineOption == "4":
+                mineNo = input("Enter the ID of the Mine you wish to add: ")
+                mineNum = int(mineNo)
+                payload = {'mine_id': mineNum}
+                mine = requests.post(baseurl+"/mines", params=payload)
+                print(mine.text)
+            elif mineOption == "5":
+                mineNo = input("Enter the ID of the Mine you wish to update: ")
+                mineNum = int(mineNo)
+                payload = {'mine_id': mineNum}
+                mine = requests.put(baseurl+"/mines/"+mineNo, params=payload)
+                print(mine.text)
 
 
 
